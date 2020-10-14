@@ -5,4 +5,4 @@ Coursework for my Programming Languages: Principle and Design module.
 
 ### Task
 
-Implement a working compiler for a programming language called Decaf. You will work on your compiler in your own study time and there will be dedicated lab session where you can get help. In the webinars we will cover all the technical aspects of compiler implementation required to enable you to complete your coursework.
+Implement a working compiler for a programming language called Decaf. Decaf is a 64-bit integer-based imperative programming language designed for teaching purposes. It's syntax is somewhere between Java/C and Fortran. It has basic loop constructs like for loops and recursion, branching, and basic arithmetic and logic operations. Decaf is statically linked to the standard C library, and it includes a language facility named callout, which enables use of standard C library functions. 
