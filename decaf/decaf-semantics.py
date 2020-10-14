@@ -11,7 +11,7 @@ class DecafSemanticChecker(DecafVisitor):
     def visitProgram(self, ctx:DecafParser.ProgramContext):
         return self.visitChildren(ctx)
 
-filein = open('testdata/semantics/illegal-01.dcf', 'r')
+filein = open('test.dcf', 'r')
 lexer = DecafLexer(ant.InputStream(filein.read()))
 
 stream = ant.CommonTokenStream(lexer)
