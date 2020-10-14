@@ -1,0 +1,4 @@
+class Program {
+	int myMethod(int myvar1, int myvar2, boolean myvar3){
+	}
+}
