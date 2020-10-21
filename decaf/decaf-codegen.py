@@ -15,22 +15,6 @@ class DecafSemanticChecker(DecafVisitor):
         self.st.enterScope()
         self.visitChildren(ctx)
         self.st.exitScope()
-
-    def visitExpr(self, ctx:DecafParser.ExprContext):
-        if ctx.literal():
-            int_literal = ctx.getText()
-            self.body += 'movq $' + int_literal + ', %rax\n'
-        elif ctx.location():
-            loc_name = ctx.location().getText()
-            location = self.st.lookup(loc_name)
-            addr = str(location.getAddr())
-        
-            if location.mem == HEAP:
-                self.body += 'movq ' + addr + '(%rbp), %rax\n'
-            else:
-                self.body += 'movq ' + addr + '(%rsp), %rax\n'
-        else:
-            self.visitChildren(ctx)
             
     def visitField_decl(self, ctx:DecafParser.Field_declContext):
         line_num = ctx.start.line
@@ -91,13 +75,51 @@ class DecafSemanticChecker(DecafVisitor):
         self.st.enterScope()
         for i in range(len(method_params)):
             self.st.addSymbol(method_params[i])
-            self.body += 'movq ' + param_registers[i] + ',' 
-            + str(method_params[i].getAddr()) + '(%rsp)\n'
+            self.body += 'movq ' + param_registers[i] + ',' + str(method_params[i].getAddr()) + '(%rsp)\n'
         
         self.visitChildren(ctx)
         self.body += 'ret\n'
         self.st.exitScope()
         
+    def visitMethod_call(self, ctx):
+        if ctx.method_name():
+            for i in range(len(ctx.expr())):
+                self.visit(ctx.expr(i))
+                self.st.stack_pointer[-1] += 8
+                self.body +='movq %rax, ' + str(-self.st.stack_pointer[-1]) + '(%rsp)\n'
+                
+            for i in range(len(ctx.expr())):
+                self.body += 'movq ' + str(-self.st.stack_pointer[-1]) + '(%rsp), ' + param_registers[i] + '\n'
+                self.st.stack_pointer[-1] -= 8
+                
+            stack_len = self.st.stack_pointer[-1]
+            stack_len = stack_len + (int(stack_len/8+1) % 2)*8
+            self.body += 'subq $' + str(stack_len) + ', %rsp\n'
+            
+            method_name = ctx.method_name().getText()
+            self.body +='call ' + method_name + '\n'
+            
+            self.body += 'addq $' + str(stack_len) + ', %rsp\n'
+            
+        elif ctx.CALLOUT():
+            pass
+        
+    def visitExpr(self, ctx:DecafParser.ExprContext):
+        if ctx.literal():
+            int_literal = ctx.getText()
+            self.body += 'movq $' + int_literal + ', %rax\n'
+        elif ctx.location():
+            loc_name = ctx.getText()
+            location = self.st.lookup(loc_name)
+            addr = str(location.getAddr())
+            
+            if location.mem == HEAP:
+                self.body += 'movq ' + addr + '(%rbp), %rax\n'
+            else:
+                self.body += 'movq ' + addr + '(%rsp), %rax\n'
+        else:
+            self.visitChildren(ctx)
+    
     
 filein = open('test.dcf', 'r')
 lexer = DecafLexer(ant.InputStream(filein.read()))
