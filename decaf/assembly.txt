@@ -1,0 +1,15 @@
+.data
+.global main
+foo:
+movq %rdi,-8(%rsp)
+movq -8(%rsp), %rax
+ret
+main:
+movq %rsp, %rbp
+movq $3, %rax
+movq %rax, -8(%rsp)
+movq -8(%rsp), %rdi
+subq $8, %rsp
+call foo
+addq $8, %rsp
+ret

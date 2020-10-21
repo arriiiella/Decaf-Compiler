@@ -48,16 +48,29 @@ class DecafSemanticChecker(DecafVisitor):
         #create a method symbol
         #store a list of params in the method symbol
         #push method symbol with params list to global scope
+        line_num = ctx.start.line
+        method_name = ctx.ID(0).getText()
+        method_type = ctx.return_type().getText()
+        method_params = []
         
         self.st.enterScope()
         
-        line_num = ctx.start.line
         for i in range(len(ctx.data_type())):
-            data_type = ctx.data_type(i).getText()
+            param_type = ctx.data_type(i).getText()
             param_name = ctx.ID(i+1).getText()
-            print(param_name)
+            param_symbol = VarSymbol(id=param_name, 
+                                     type=param_type,
+                                     line=line_num,
+                                     size=8,
+                                     mem=STACK)
+            method_params.append(param_symbol)
             
+        method_symbol = MethodSymbol(method_name, 
+                                     method_type, 
+                                     line_num, 
+                                     method_params)
         self.visitChildren(ctx)
+        self.st.addSymbol(method_symbol)
         self.st.exitScope()
         
     def visitExpr(self, ctx:DecafParser.ExprContext):
