@@ -22,7 +22,7 @@ class DecafSemanticChecker(DecafVisitor):
        
         field_count = len(ctx.field_name())
         for i in range (field_count):
-           field_name = ctx.field_name(i).getText()          
+           field_name = ctx.field_name(i).ID().getText()          
 
            if ctx.field_name(i).int_literal() != None:
                array_size = int(ctx.field_name(i).int_literal().getText())
