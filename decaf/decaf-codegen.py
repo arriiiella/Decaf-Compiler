@@ -89,7 +89,7 @@ class DecafSemanticChecker(DecafVisitor):
                 self.body +='movq %rax, ' + str(-self.st.stack_pointer[-1]) + '(%rsp)\n'
                 
             for i in range(len(ctx.expr())):
-                self.body += 'movq ' + str(-self.st.stack_pointer[-1]) + '(%rsp), ' + param_registers[i] + '\n'
+                self.body += 'movq ' + str(-self.st.stack_pointer[-1]) + '(%rsp), ' + param_registers[len(ctx.expr())-i-1] + '\n'
                 self.st.stack_pointer[-1] -= 8
                 
             stack_len = self.st.stack_pointer[-1]

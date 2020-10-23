@@ -1,11 +1,11 @@
 class Program {
     int a;
-    int foo(int a) {
-        return a;
+    int foo(int a, int b, int c) {
+        return b;
     }
     
     void main() {
-        return foo(3);
+        return foo(10,15,8);
     }
 }
 
