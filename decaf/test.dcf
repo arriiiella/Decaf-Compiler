@@ -1,5 +1,11 @@
 class Program {
-    void mymethod(){
-        a = b + 1;
+    int a;
+    int foo(int a, int b, int c) {
+        return b;
+    }
+    
+    void main() {
+        return foo(10,15,8);
     }
 }
+

@@ -55,7 +55,7 @@ HEX_LITERAL : '0x' HEX_DIGIT+;
 WS : [ \t\r\n]+ -> skip;
 COMMENT : '//' ~'\n'* '\n' -> skip;
 
-fragment GOOD_CHARS : [ -~];
+fragment GOOD_CHARS : ~('\n' | '"' | '\'' | '\\');
 fragment DOUBLE_CHARS : '\\' ('n' | '"' | '\'' | '\\');
 CHAR : '\'' (GOOD_CHARS | DOUBLE_CHARS) '\'';
 

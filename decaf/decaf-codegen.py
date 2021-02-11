@@ -2,25 +2,27 @@ import antlr4 as ant
 from DecafLexer import DecafLexer
 from DecafParser import DecafParser
 from DecafVisitor import DecafVisitor
-from SymbolTable import HEAP, STACK, SymbolTable, VarSymbol, MethodSymbol
+from SymbolTable import HEAP, STACK, SymbolTable, VarSymbol, MethodSymbol, param_registers
 
 class DecafSemanticChecker(DecafVisitor):
     def __init__(self):
         super().__init__()
+        self.head = '.data\n'
+        self.body = '.global main\n'
         self.st = SymbolTable()
         
     def visitProgram(self, ctx:DecafParser.ProgramContext):
         self.st.enterScope()
         self.visitChildren(ctx)
         self.st.exitScope()
-        
+            
     def visitField_decl(self, ctx:DecafParser.Field_declContext):
-       line_num = ctx.start.line
-       data_type = ctx.data_type().getText()
+        line_num = ctx.start.line
+        data_type = ctx.data_type().getText()
        
-       field_count = len(ctx.field_name())
-       for i in range (field_count):
-           field_name = ctx.field_name(i).getText()          
+        field_count = len(ctx.field_name())
+        for i in range (field_count):
+           field_name = ctx.field_name(i).ID().getText()          
 
            if ctx.field_name(i).int_literal() != None:
                array_size = int(ctx.field_name(i).int_literal().getText())
@@ -42,18 +44,13 @@ class DecafSemanticChecker(DecafVisitor):
            
                self.st.addSymbol(field_symbol)
        
-       self.visitChildren(ctx)
+        self.visitChildren(ctx)
         
     def visitMethod_decl(self, ctx:DecafParser.Method_declContext):
-        #create a method symbol
-        #store a list of params in the method symbol
-        #push method symbol with params list to global scope
         line_num = ctx.start.line
         method_name = ctx.ID(0).getText()
         method_type = ctx.return_type().getText()
         method_params = []
-        
-        self.st.enterScope()
         
         for i in range(len(ctx.data_type())):
             param_type = ctx.data_type(i).getText()
@@ -64,32 +61,66 @@ class DecafSemanticChecker(DecafVisitor):
                                      size=8,
                                      mem=STACK)
             method_params.append(param_symbol)
-            
+        
         method_symbol = MethodSymbol(method_name, 
                                      method_type, 
                                      line_num, 
                                      method_params)
-        self.visitChildren(ctx)
         self.st.addSymbol(method_symbol)
+        
+        self.body += method_name + ':\n'
+        if method_name == 'main':
+            self.body += 'movq %rsp, %rbp\n'
+        
+        self.st.enterScope()
+        for i in range(len(method_params)):
+            self.st.addSymbol(method_params[i])
+            self.body += 'movq ' + param_registers[i] + ',' + str(method_params[i].getAddr()) + '(%rsp)\n'
+        
+        self.visitChildren(ctx)
+        self.body += 'ret\n'
         self.st.exitScope()
         
+    def visitMethod_call(self, ctx):
+        if ctx.method_name():
+            for i in range(len(ctx.expr())):
+                self.visit(ctx.expr(i))
+                self.st.stack_pointer[-1] += 8
+                self.body +='movq %rax, ' + str(-self.st.stack_pointer[-1]) + '(%rsp)\n'
+                
+            for i in range(len(ctx.expr())):
+                self.body += 'movq ' + str(-self.st.stack_pointer[-1]) + '(%rsp), ' + param_registers[len(ctx.expr())-i-1] + '\n'
+                self.st.stack_pointer[-1] -= 8
+                
+            stack_len = self.st.stack_pointer[-1]
+            stack_len = stack_len + (int(stack_len/8+1) % 2)*8
+            self.body += 'subq $' + str(stack_len) + ', %rsp\n'
+            
+            method_name = ctx.method_name().getText()
+            self.body +='call ' + method_name + '\n'
+            
+            self.body += 'addq $' + str(stack_len) + ', %rsp\n'
+            
+        elif ctx.CALLOUT():
+            pass
+        
     def visitExpr(self, ctx:DecafParser.ExprContext):
-        if len(ctx.expr()) == 2:
-            #root node
-            type_a = self.visit(ctx.expr(0))
-            type_b = self.visit(ctx.expr(1))
-
-            if type_a != type_b:
-                print('Error')
-        elif ctx.location() != None:
-            #in variable node
-            pass
-        elif ctx.literal() != None:
-            #in literal node
-            pass
+        if ctx.literal():
+            int_literal = ctx.getText()
+            self.body += 'movq $' + int_literal + ', %rax\n'
+        elif ctx.location():
+            loc_name = ctx.getText()
+            location = self.st.lookup(loc_name)
+            addr = str(location.getAddr())
+            
+            if location.mem == HEAP:
+                self.body += 'movq ' + addr + '(%rbp), %rax\n'
+            else:
+                self.body += 'movq ' + addr + '(%rsp), %rax\n'
         else:
             self.visitChildren(ctx)
-        
+    
+    
 filein = open('test.dcf', 'r')
 lexer = DecafLexer(ant.InputStream(filein.read()))
 
@@ -100,3 +131,6 @@ tree = parser.program()
 
 visitor = DecafSemanticChecker()
 visitor.visit(tree)
+
+code = visitor.head + visitor.body
+print(code)
